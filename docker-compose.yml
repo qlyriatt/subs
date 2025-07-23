@@ -1,0 +1,26 @@
+services:
+  subs:
+    build: .
+    ports:
+      - "${SUBS_PORT}:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_USER: ${DB_USER}
+      DB_PASS: ${DB_PASS}
+      DB_DB: ${DB_DB}
+      DB_HOST: ${DB_HOST}
+  db:
+    image: postgres:17
+    ports:
+      - "${DB_PORT}:5432"
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASS}
+      POSTGRES_DB: ${DB_DB}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d ${DB_DB} -U ${DB_USER}"]
+      interval: 3s
+      timeout: 1s
+      retries: 3
