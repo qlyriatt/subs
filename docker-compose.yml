@@ -10,7 +10,7 @@ services:
       DB_USER: ${DB_USER}
       DB_PASS: ${DB_PASS}
       DB_DB: ${DB_DB}
-      DB_HOST: ${DB_HOST}
+      DB_HOST: db
   db:
     image: postgres:17
     ports:

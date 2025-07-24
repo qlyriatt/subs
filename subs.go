@@ -11,6 +11,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
+	httpSwagger "github.com/swaggo/http-swagger"
 )
 
 var db DB
@@ -84,7 +85,7 @@ func validateSub(sub Sub) error {
 		return errors.New("empty service name")
 	}
 
-	if sub.Price <= 0 {
+	if sub.Price < 0 {
 		return errors.New("invalid price")
 	}
 
@@ -313,6 +314,12 @@ func Start(database DB) {
 
 	db = database
 
+	r := newRouter()
+	r.(*mux.Router).HandleFunc("/swagger.yaml", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "./swagger.yaml")
+	}).Methods("GET")
+	r.(*mux.Router).PathPrefix("/swagger/").Handler(httpSwagger.Handler(httpSwagger.URL("/swagger.yaml")))
+
 	logger.Println("Subs started on port 8080")
-	logger.Fatal(http.ListenAndServe(":8080", newRouter()))
+	logger.Fatal(http.ListenAndServe(":8080", r))
 }

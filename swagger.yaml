@@ -1,0 +1,205 @@
+openapi: 3.0.0
+info:
+  title: Subscription Service API
+  version: 1.0.0
+  description: API for managing subscriptions
+
+servers:
+  - url: http://localhost:8080
+
+components:
+  schemas:
+    SubRequest:
+      type: object
+      properties:
+        service_name:
+          type: string
+        price:
+          type: number
+        user_id:
+          type: string
+          format: uuid
+        start_date:
+          type: string
+          pattern: '^(0[1-9]|1[0-2])-\d{4}$'
+          format: mm-yyyy
+        end_date:
+          type: string
+          pattern: '^(0[1-9]|1[0-2])-\d{4}$'
+          format: mm-yyyy
+      required:
+        - service_name
+        - price
+        - user_id
+        - start_date
+    SubResponse:
+      allOf:
+        - $ref: '#/components/schemas/SubRequest'
+        - type: object
+          properties:
+            sub_id:
+              type: string
+              format: uuid
+    SubID:
+      type: object
+      properties:
+        sub_id:
+          type: string
+          format: uuid
+    
+  responses:
+    400:
+      description: Invalid request
+      content:
+        text/plain:
+          schema:
+            type: string
+    500:
+      description: Server error
+      content:
+        text/plain:
+          schema:
+            type: string
+            
+paths:
+  /subs:
+    post:
+      summary: Create a new subscription
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubRequest'
+      responses:
+        201:
+          description: Created subscription ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubID'
+        400:
+          $ref: '#/components/responses/400'
+        500:
+          $ref: '#/components/responses/500'
+    get:
+      summary: List all subscriptions
+      responses:
+        200:
+          description: List of subscriptions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SubResponse'
+        400:
+          $ref: '#/components/responses/400'
+        500:
+          $ref: '#/components/responses/500'
+
+  /subs/{id}:
+    get:
+      summary: Read a subscription by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        200:
+          description: Subscription object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubResponse'
+        404:
+          description: Subscription not found
+        400:
+          $ref: '#/components/responses/400'
+        500:
+          $ref: '#/components/responses/500'
+    put:
+      summary: Update a subscription by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubRequest'
+      responses:
+        200:
+          description: Updated subscription
+        404:
+          description: Subscription not found
+        400:
+          $ref: '#/components/responses/400'
+        500:
+          $ref: '#/components/responses/500'
+    delete:
+      summary: Delete a subscription by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        204:
+          description: Deleted successfully
+        404:
+          description: Subscription not found
+        400:
+          $ref: '#/components/responses/400'
+        500:
+          $ref: '#/components/responses/500'
+
+  /subs/sum:
+    get:
+      summary: Get sum of subscription prices based on filters
+      parameters:
+        - name: start_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: mm-yyyy
+        - name: end_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: mm-yyyy
+        - name: service_name
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: user_id
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+      responses:
+        200:
+          description: Sum of prices
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sum:
+                    type: number
+        400:
+          $ref: '#/components/responses/400'
+        500:
+          $ref: '#/components/responses/500'
