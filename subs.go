@@ -16,6 +16,8 @@ import (
 var db DB
 var logger *log.Logger = log.Default()
 
+var ErrNotFound = errors.New("not found in db")
+
 type DB interface {
 	Create(sub Sub) (string, error)
 	Read(id string) (Sub, error)
@@ -166,6 +168,12 @@ func readHandler(w http.ResponseWriter, r *http.Request) {
 
 	sub, err := db.Read(id)
 	if err != nil {
+		if err == ErrNotFound {
+			logger.Printf("read: resp 404; valid req %v", id)
+			http.Error(w, "not found", http.StatusNotFound)
+			return
+		}
+
 		logger.Printf("read: resp 500: %v; valid req %v", err, id)
 		http.Error(w, "server error", http.StatusInternalServerError)
 		return
@@ -200,6 +208,12 @@ func updateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := db.Update(id, sub); err != nil {
+		if err == ErrNotFound {
+			logger.Printf("read: resp 404; valid req %v", id)
+			http.Error(w, "not found", http.StatusNotFound)
+			return
+		}
+
 		logger.Printf("update: resp 500: %v; valid req %v, %v", err, id, sub)
 		http.Error(w, "server error", http.StatusInternalServerError)
 		return
@@ -218,6 +232,12 @@ func deleteHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := db.Delete(id); err != nil {
+		if err == ErrNotFound {
+			logger.Printf("read: resp 404; valid req %v", id)
+			http.Error(w, "not found", http.StatusNotFound)
+			return
+		}
+
 		logger.Printf("delete: resp 500: %v; valid req %v", err, id)
 		http.Error(w, "server error", http.StatusInternalServerError)
 		return

@@ -142,6 +142,9 @@ func TestInteg(t *testing.T) {
 
 	t.Run("list", func(t *testing.T) {
 
+		// list empty db
+		testListPayload(t, server_url)
+
 		count := 5
 		var ids []string
 		for range count {

@@ -42,22 +42,34 @@ func (db *PGXDB) Read(id string) (Sub, error) {
 		"SELECT sub_id, service_name, price, user_id, to_char(start_date, 'MM-YYYY'), to_char(end_date, 'MM-YYYY') FROM subs WHERE sub_id=$1", id).
 		Scan(&sub.ID, &sub.Service, &sub.Price, &sub.User_ID, &sub.Start, &sub.End)
 
+	if err == pgx.ErrNoRows {
+		return Sub{}, ErrNotFound
+	}
+
 	return sub, err
 }
 
 func (db *PGXDB) Update(id string, sub Sub) error {
 
-	_, err := db.conn.Exec(context.Background(),
+	tag, err := db.conn.Exec(context.Background(),
 		"UPDATE subs SET service_name=$1, price=$2, user_id=$3, start_date=to_date($4, 'MM-YYYY'), end_date=to_date($5, 'MM-YYYY') WHERE sub_id=$6",
 		sub.Service, sub.Price, sub.User_ID, sub.Start, sub.End, id)
+
+	if tag.RowsAffected() == 0 {
+		return ErrNotFound
+	}
 
 	return err
 }
 
 func (db *PGXDB) Delete(id string) error {
 
-	_, err := db.conn.Exec(context.Background(),
+	tag, err := db.conn.Exec(context.Background(),
 		"DELETE FROM subs WHERE sub_id=$1", id)
+
+	if tag.RowsAffected() == 0 {
+		return ErrNotFound
+	}
 
 	return err
 }

@@ -18,6 +18,7 @@ type MockDB struct {
 }
 
 func (m *MockDB) Create(sub Sub) (string, error) {
+
 	id := uuid.NewString()
 	sub.ID = id
 	m.db[id] = sub
@@ -27,17 +28,18 @@ func (m *MockDB) Create(sub Sub) (string, error) {
 
 func (m *MockDB) Read(id string) (Sub, error) {
 
-	sub, exists := m.db[id]
-	if !exists {
-		return Sub{}, fmt.Errorf("not found")
+	sub, ok := m.db[id]
+	if !ok {
+		return Sub{}, ErrNotFound
 	}
 
 	return sub, nil
 }
 
 func (m *MockDB) Update(id string, sub Sub) error {
-	if _, exists := m.db[id]; !exists {
-		return fmt.Errorf("not found")
+
+	if _, ok := m.db[id]; !ok {
+		return ErrNotFound
 	}
 	m.db[id] = sub
 
@@ -47,7 +49,7 @@ func (m *MockDB) Update(id string, sub Sub) error {
 func (m *MockDB) Delete(id string) error {
 
 	if _, ok := m.db[id]; !ok {
-		return fmt.Errorf("not found")
+		return ErrNotFound
 	}
 	delete(m.db, id)
 
@@ -55,10 +57,6 @@ func (m *MockDB) Delete(id string) error {
 }
 
 func (m *MockDB) List() ([]Sub, error) {
-
-	if len(m.db) == 0 {
-		return []Sub{}, fmt.Errorf("not found")
-	}
 
 	var subs []Sub
 	for _, sub := range m.db {
@@ -335,8 +333,8 @@ func TestReadHandler(t *testing.T) {
 		}
 		defer resp.Body.Close()
 
-		if resp.StatusCode != 500 {
-			t.Errorf("expected status: 500, got %v", resp.StatusCode)
+		if resp.StatusCode != 404 {
+			t.Errorf("expected status: 404, got %v", resp.StatusCode)
 		}
 	})
 
@@ -448,8 +446,8 @@ func TestUpdateHandler(t *testing.T) {
 		}
 		defer resp.Body.Close()
 
-		if resp.StatusCode != 500 {
-			t.Errorf("expected status: 500, got %v", resp.StatusCode)
+		if resp.StatusCode != 404 {
+			t.Errorf("expected status: 404, got %v", resp.StatusCode)
 		}
 	})
 	t.Run("no user id", func(t *testing.T) {
@@ -535,8 +533,8 @@ func TestDeleteHandler(t *testing.T) {
 		}
 		defer resp.Body.Close()
 
-		if resp.StatusCode != 500 {
-			t.Errorf("expected status: 500, got %v", resp.StatusCode)
+		if resp.StatusCode != 404 {
+			t.Errorf("expected status: 404, got %v", resp.StatusCode)
 		}
 	})
 
@@ -587,17 +585,6 @@ func TestListHandler(t *testing.T) {
 	server := httptest.NewServer(newRouter())
 	defer server.Close()
 
-	t.Run("empty db", func(t *testing.T) {
-		resp, err := http.Get(server.URL + "/subs")
-		if err != nil {
-			t.Error(err)
-		}
-
-		if resp.StatusCode != 500 {
-			t.Errorf("expected status: 500, got: %v", resp.StatusCode)
-		}
-	})
-
 	id := uuid.NewString()
 	s := Sub{
 		ID:      id,
@@ -618,13 +605,9 @@ func TestListHandler(t *testing.T) {
 	}
 	m.db[id2] = s2
 
-	t.Run("payload", func(t *testing.T) {
-		subs := testListPayload(t, server.URL)
-
-		compareSubs(t, s, subs[0])
-		compareSubs(t, s2, subs[1])
-
-	})
+	subs := testListPayload(t, server.URL)
+	compareSubs(t, s, subs[0])
+	compareSubs(t, s2, subs[1])
 }
 
 func testSumPayload(t *testing.T, server_url string, s Sub) int {

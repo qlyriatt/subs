@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 	"subs"
 
 	"github.com/golang-migrate/migrate/v4"
@@ -13,11 +14,16 @@ import (
 
 func main() {
 
-	file, err := os.OpenFile("subs.log", os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
-	if err != nil {
-		log.Println("unable to set custom logger in subs.log")
-	} else {
-		subs.SetLogger(log.New(file, "[subs] ", log.LstdFlags))
+	if s := os.Getenv("LOG_TO_FILE"); s != "" {
+		i, _ := strconv.Atoi(s)
+		if i == 1 {
+			file, err := os.OpenFile("subs.log", os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+			if err != nil {
+				log.Println("unable to set custom logger in subs.log")
+			} else {
+				subs.SetLogger(log.New(file, "[subs] ", log.LstdFlags))
+			}
+		}
 	}
 
 	conn_str := fmt.Sprintf("postgres://%v:%v@%v:5432/%v?sslmode=disable", os.Getenv("DB_USER"), os.Getenv("DB_PASS"), os.Getenv("DB_HOST"), os.Getenv("DB_DB"))
@@ -32,7 +38,7 @@ func main() {
 		log.Fatalf("migration error: %v", err)
 	}
 
-	if err := mig.Up(); err != nil {
+	if err := mig.Up(); err != nil && err != migrate.ErrNoChange {
 		log.Fatalf("migration error: %v", err)
 	}
 
