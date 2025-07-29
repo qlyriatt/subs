@@ -1,13 +1,17 @@
 package subs
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
@@ -26,6 +30,8 @@ type DB interface {
 	Delete(id string) error
 	List() ([]Sub, error)
 	Sum(filter Sub) (int, error)
+
+	Close() error
 }
 
 type Sub struct {
@@ -314,12 +320,37 @@ func Start(database DB) {
 
 	db = database
 
+	// add swagger UI docs
 	r := newRouter()
 	r.(*mux.Router).HandleFunc("/swagger.yaml", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "./swagger.yaml")
 	}).Methods("GET")
 	r.(*mux.Router).PathPrefix("/swagger/").Handler(httpSwagger.Handler(httpSwagger.URL("/swagger.yaml")))
 
-	logger.Println("Subs started on port 8080")
-	logger.Fatal(http.ListenAndServe(":8080", r))
+	server := http.Server{
+		Addr:    ":8080",
+		Handler: r,
+	}
+
+	go func() {
+		logger.Println("Subs started on port 8080")
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			logger.Fatalf("Server error: %v", err)
+		}
+	}()
+
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, os.Interrupt)
+	<-stop
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	if err := server.Shutdown(ctx); err != nil {
+		logger.Fatalf("Shutdown error: %v", err)
+	}
+	if err := db.Close(); err != nil {
+		logger.Fatalf("Shutdown error: %v", err)
+	}
+
+	logger.Println("Subs stopped")
 }

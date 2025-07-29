@@ -121,3 +121,7 @@ func (db *PGXDB) Sum(filter Sub) (int, error) {
 
 	return sum, nil
 }
+
+func (db *PGXDB) Close() error {
+	return db.conn.Close(context.Background())
+}

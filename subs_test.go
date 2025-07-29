@@ -116,6 +116,10 @@ func (m *MockDB) Sum(filter Sub) (int, error) {
 	return sum, nil
 }
 
+func (m *MockDB) Close() error {
+	return nil
+}
+
 func compareSubs(t *testing.T, s1 Sub, s2 Sub) {
 
 	t.Helper()

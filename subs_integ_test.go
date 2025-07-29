@@ -13,16 +13,10 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/joho/godotenv"
 	"github.com/testcontainers/testcontainers-go"
 )
 
 func setupInteg(t *testing.T) {
-
-	err := godotenv.Load(".env")
-	if err != nil {
-		t.Fatal(err)
-	}
 
 	req := testcontainers.ContainerRequest{
 		Image: "postgres:17",
